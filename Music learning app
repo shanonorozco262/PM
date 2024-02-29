@@ -1,4 +1,7 @@
+from flask import Flask, render_template, request, redirect, url_for
 import random
+
+app = Flask(__name__)
 
 class MusicQuiz:
     def __init__(self):
@@ -9,30 +12,36 @@ class MusicQuiz:
             # Add more questions as needed
         ]
         self.score = 0
+        self.current_question = 0
 
-    def start_quiz(self):
-        print("Welcome to the Music Quiz!")
+    def get_current_question(self):
+        return self.questions[self.current_question]
 
-        for question in self.questions:
-            self.ask_question(question)
+    def check_answer(self, user_answer):
+        correct_answer = self.get_current_question()["correct_answer"]
+        return user_answer == correct_answer
 
-        print(f"Quiz completed! Your score: {self.score}/{len(self.questions)}")
+    def next_question(self):
+        self.current_question += 1
+        return self.current_question < len(self.questions)
 
-    def ask_question(self, question):
-        print(question["question"])
-        random.shuffle(question["options"])
+music_quiz = MusicQuiz()
 
-        for option in question["options"]:
-            print(option)
+@app.route('/')
+def index():
+    return render_template('index.html', question=music_quiz.get_current_question())
 
-        user_answer = input("Your answer: ").upper()
+@app.route('/answer', methods=['POST'])
+def answer():
+    user_answer = request.form['answer']
+    
+    if music_quiz.check_answer(user_answer):
+        music_quiz.score += 1
 
-        if user_answer == question["correct_answer"]:
-            print("Correct!\n")
-            self.score += 1
-        else:
-            print(f"Wrong! The correct answer is {question['correct_answer']}\n")
+    if music_quiz.next_question():
+        return redirect(url_for('index'))
+    else:
+        return render_template('result.html', score=music_quiz.score)
 
-if __name__ == "__main__":
-    music_quiz = MusicQuiz()
-    music_quiz.start_quiz()
+if __name__ == '__main__':
+    app.run(debug=True)
